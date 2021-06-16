@@ -1,69 +1,73 @@
-const React = require("react");
-const flatten = require("lodash.flatten");
+"use strict";
 
-const {
-  computeHash,
-  cspString,
-  getHashes,
-  defaultDirectives
-} = require("./utils");
+const flatten = require('lodash.flatten');
+const fs = require('fs');
 
-exports.onPreRenderHTML = (
-  {
-    getHeadComponents,
-    replaceHeadComponents,
-    getPreBodyComponents,
-    getPostBodyComponents
-  },
-  userPluginOptions
-) => {
-  const {
-    disableOnDev = true,
-    reportOnly = false,
-    mergeScriptHashes = true,
-    mergeStyleHashes = true,
-    mergeDefaultDirectives = true,
-    directives: userDirectives
-  } = userPluginOptions;
+const _require = require('./utils');
+const cspString = _require.cspString;
+const getHashes = _require.getHashes;
+const defaultJson = _require.defaultJson;
+const defaultDirectives = _require.defaultDirectives;
+let headerLength = defaultJson['hosting']['headers'].length;
+const arrScript = [];
+const arrStyle = [];
+let idx = 0;
 
-  // early return if plugin is disabled on dev env
+exports.onPreRenderHTML = ({
+  getHeadComponents,
+  getPreBodyComponents,
+  getPostBodyComponents
+}, userPluginOptions) => {
+  const _userPluginOptions$di = userPluginOptions.disableOnDev;
+  const disableOnDev = _userPluginOptions$di === void 0 ? true : _userPluginOptions$di;
+  const _userPluginOptions$me = userPluginOptions.mergeScriptHashes;
+  const mergeScriptHashes = _userPluginOptions$me === void 0 ? true : _userPluginOptions$me;
+  const _userPluginOptions$me2 = userPluginOptions.mergeStyleHashes;
+  const mergeStyleHashes = _userPluginOptions$me2 === void 0 ? true : _userPluginOptions$me2;
+  const _userPluginOptions$me3 = userPluginOptions.mergeDefaultDirectives;
+  const mergeDefaultDirectives = _userPluginOptions$me3 === void 0 ? true : _userPluginOptions$me3;
+  const userDirectives = userPluginOptions.directives; // early return if plugin is disabled on dev env
+  const _hosting$me = userPluginOptions.hosting;
+  const defaultfirebase = _hosting$me === void 0 ? defaultJson : _hosting$me;
+  if (idx === 0) {
+    headerLength = defaultfirebase['hosting']['headers'].length;
+  }
+
   if (process.env.NODE_ENV === "development" && disableOnDev) {
     return;
   }
 
-  let components = [
-    ...flatten(getHeadComponents()),
-    ...flatten(getPostBodyComponents()),
-    ...flatten(getPreBodyComponents())
-  ];
-
-  let directives = {
-    ...(mergeDefaultDirectives && defaultDirectives),
-    ...userDirectives
-  };
-
-  let csp = {
-    ...directives,
-    ...(mergeScriptHashes && {
-      "script-src": `${directives["script-src"] || ""} ${getHashes(
-        components,
-        "script"
-      )}`
-    }),
-    ...(mergeStyleHashes && {
-      "style-src": `${directives["style-src"] || ""} ${getHashes(
-        components,
-        "style"
-      )}`
-    })
-  };
-
-  const cspComponent = React.createElement("meta", {
-    httpEquiv: `${reportOnly ? "Content-Security-Policy-Report-Only" : "Content-Security-Policy"}`,
-    content: cspString(csp)
+  let components = [...flatten(getHeadComponents()), ...flatten(getPostBodyComponents()), ...flatten(getPreBodyComponents())];
+  let directives = Object.assign({}, mergeDefaultDirectives && defaultDirectives, userDirectives);
+  const scripthashes = getHashes(components, "script");
+  const stylehashes = getHashes(components, "style");
+  scripthashes.forEach((item) => {
+    if (arrScript.indexOf(item) === -1) {
+      arrScript.push(item);
+    }
+  });
+  stylehashes.forEach((item) => {
+    if (arrStyle.indexOf(item) === -1) {
+      arrStyle.push(item);
+    }
   });
 
-  let headComponentsWithCsp = [cspComponent, ...getHeadComponents()];
+  let csp = Object.assign({}, directives, mergeScriptHashes && {
+    "script-src": `${directives["script-src"] || ""} ${arrScript.join(" ")}`
+  }, mergeStyleHashes && {
+    "style-src": `${directives["style-src"] || ""} ${arrStyle.join(" ")}`
+  });
 
-  replaceHeadComponents(headComponentsWithCsp);
+  defaultfirebase['hosting']['headers'][headerLength] = {
+    "source": "**",
+    "headers": [
+      {
+        "key": "Content-Security-Policy",
+        "value": cspString(csp)
+      }
+    ]
+  };
+  let data = JSON.stringify(defaultfirebase);
+  fs.writeFileSync('firebase.json', data);
+  idx += 1;
 };
