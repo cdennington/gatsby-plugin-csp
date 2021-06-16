@@ -6,11 +6,7 @@
 
 ## Install
 
-`npm i gatsby-plugin-firebase-csp`
-
-or
-
-`yarn add gatsby-plugin-firebase-csp`
+`npm install --save git+https://github.com/cdennington/gatsby-plugin-csp`
 
 ## How to use
 
