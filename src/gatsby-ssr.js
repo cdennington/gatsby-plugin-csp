@@ -1,7 +1,7 @@
 "use strict";
 
 const flatten = require('lodash.flatten');
-const fs = require('fs');
+const fs = require('file-system');
 
 const _require = require('./utils');
 const cspString = _require.cspString;
