@@ -9,60 +9,40 @@ const defaultDirectives = {
   "object-src": "'none'",
   "form-action": "'self'",
   "font-src": "'self' data:",
-  "img-src": "'self' data:"
+  "img-src": "'self' data:",
 };
-
 const defaultJson = {
   "hosting": {
     "public": "public",
-    "ignore": [
-      "firebase.json",
-      "**/.*",
-      "**/node_modules/**"
-    ],
+    "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
     "functions": {
-      "predeploy": [
-        "npm --prefix \"$RESOURCE_DIR\" run lint"
-      ]
+      "predeploy": ["npm --prefix \"$RESOURCE_DIR\" run lint"]
     },
-    "headers": [
-      {
-        "source": "**/*.@(eot|otf|ttf|ttc|woff|font.css)",
-        "headers": [
-          {
-            "key": "Access-Control-Allow-Origin",
-            "value": "*"
-          }
-        ]
-      },
-      {
-        "source": "**/*.@(js|css)",
-        "headers": [
-          {
-            "key": "Cache-Control",
-            "value": "max-age=604800"
-          }
-        ]
-      },
-      {
-        "source": "**/*.@(jpg|jpeg|gif|png)",
-        "headers": [
-          {
-            "key": "Cache-Control",
-            "value": "max-age=604800"
-          }
-        ]
-      },
-      {
-        "source": "404.html",
-        "headers": [
-          {
-            "key": "Cache-Control",
-            "value": "max-age=300"
-          }
-        ]
-      }
-    ]
+    "headers": [{
+      "source": "**/*.@(eot|otf|ttf|ttc|woff|font.css)",
+      "headers": [{
+        "key": "Access-Control-Allow-Origin",
+        "value": "*"
+      }]
+    }, {
+      "source": "**/*.@(js|css)",
+      "headers": [{
+        "key": "Cache-Control",
+        "value": "max-age=604800"
+      }]
+    }, {
+      "source": "**/*.@(jpg|jpeg|gif|png)",
+      "headers": [{
+        "key": "Cache-Control",
+        "value": "max-age=604800"
+      }]
+    }, {
+      "source": "404.html",
+      "headers": [{
+        "key": "Cache-Control",
+        "value": "max-age=300"
+      }]
+    }]
   },
   "emulators": {
     "functions": {
@@ -96,18 +76,25 @@ function cspString(csp) {
   }, ``).slice(0, -1); // remove last space
 };
 
-function getHashes(components, type) {
-  let isType = element => element.type === type;
-
-  let isInline = element => element.props.dangerouslySetInnerHTML && element.props.dangerouslySetInnerHTML.__html.length > 0;
-
-  return components.filter(isType).filter(isInline).map(computeHash);
+function addNonce(component, nonce) {
+  if (nonce) {
+    component.props.nonce = nonce;
+  }
 };
 
+function getHashes(components, nonce) {
+  let isType = element => element.type === 'link' || element.type === 'script';
+  let isInline = element => element.props.dangerouslySetInnerHTML && element.props.dangerouslySetInnerHTML.__html.length > 0;
+
+  components.filter(isType).map((component) => addNonce(component, nonce));
+  return components.filter(isInline).map(computeHash);
+}
+
+;
 module.exports = {
   computeHash,
   cspString,
   getHashes,
   defaultDirectives,
-  defaultJson,
+  defaultJson
 };
